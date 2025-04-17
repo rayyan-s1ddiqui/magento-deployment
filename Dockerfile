@@ -1,8 +1,11 @@
-FROM php:8.4-fpm
-RUN apt-get update && apt-get install -y \
-    libpng-dev libzip-dev libxml2-dev \
-    && docker-php-ext-install pdo_mysql zip gd soap \
-    && pecl install redis && docker-php-ext-enable redis
+FROM php:8.1-fpm
+
+# Install system dependencies, PHP extensions (gd, soap, zip, etc.)...
+# Copy source code
+COPY . /var/www/html
+
+# Install Magento dependencies inside the container
 WORKDIR /var/www/html
-COPY . .
-RUN chown -R www-data:www-data /var/www/html
+RUN composer install --no-dev
+
+# Set correct permissions, ownership, configs etc.

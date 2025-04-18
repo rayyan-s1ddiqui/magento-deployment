@@ -3,7 +3,7 @@ pipeline {
     environment {
         AWS_REGION = "${AWS_REGION ?: 'us-east-1'}"
         ECR_REGISTRY = "${ECR_REGISTRY ?: sh(returnStdout: true, script: 'aws sts get-caller-identity --query Account --output text').trim() + '.dkr.ecr.' + env.AWS_REGION + '.amazonaws.com'}"
-        REPO_NAME = "magento"
+        REPO_NAME = "magento-repo"
         IMAGE_NAME = "${ECR_REGISTRY}/${REPO_NAME}"
         GIT_REPO = "${GIT_REPO ?: 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'}"
         ARGOCD_SERVER = "https://kubernetes.default.svc"

@@ -2,21 +2,23 @@ pipeline {
     agent any
     environment {
         AWS_REGION = "${AWS_REGION ?: 'us-east-1'}"
-        ECR_REGISTRY = "${ECR_REGISTRY ?: sh(returnStdout: true, script: 'aws sts get-caller-identity --query Account --output text').trim() + '.dkr.ecr.' + env.AWS_REGION + '.amazonaws.com'}"
-        REPO_NAME = "magento-repo"
+        ECR_REGISTRY = "${sh(returnStdout: true, script: 'aws sts get-caller-identity --query Account --output text').trim() + '.dkr.ecr.' + env.AWS_REGION + '.amazonaws.com'}"
+        REPO_NAME = "magento"
         IMAGE_NAME = "${ECR_REGISTRY}/${REPO_NAME}"
-        GIT_REPO = "${GIT_REPO ?: 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'}"
+        GIT_REPO = "${GIT_REPO ?: 'https://github.com/rayyan-s1ddiqui/magento-deployment'"
         ARGOCD_SERVER = "https://kubernetes.default.svc"
         K8S_NAMESPACE = "default"
-        AWS_CREDENTIALS = credentials('aws-credentials-id')
     }
     stages {
         stage('Prepare') {
             steps {
-                sh 'echo "Using AWS Region: ${AWS_REGION}"'
-                sh 'echo "ECR Registry: ${ECR_REGISTRY}"'
-                sh 'aws configure set region ${AWS_REGION}'
-                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
+                withCredentials([usernamePassword(credentialsId: '697d826f-cf37-4bc6-b717-5c666c65b9a5', usernameVariable: 'AWS_ACCESS_KEY_ID', passwordVariable: 'AWS_SECRET_ACCESS_KEY')]) { 
+                    sh 'echo "Configuring AWS credentials"'
+                    sh 'mkdir -p ~/.aws'
+                    sh 'echo "[default]\\naws_access_key_id=${AWS_ACCESS_KEY_ID}\\naws_secret_access_key=${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials'
+                    sh 'aws configure set region ${AWS_REGION}'
+                    sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
+                }
             }
         }
         stage('Build') {
@@ -36,6 +38,7 @@ pipeline {
     }
     post {
         always {
+            sh 'rm -rf ~/.aws/credentials'
             sh 'docker logout ${ECR_REGISTRY}'
         }
     }

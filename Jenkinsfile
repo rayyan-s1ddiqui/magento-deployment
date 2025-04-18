@@ -2,25 +2,21 @@ pipeline {
     agent any
     environment {
         AWS_REGION = "${AWS_REGION ?: 'us-east-1'}"
-        REPO_NAME = "magento-repo"
-        GIT_REPO = "${GIT_REPO ?: 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'}"
-        ARGOCD_SERVER = "https://kubernetes.default.svc"
+        ECR_REGISTRY = "${ECR_REGISTRY ?: sh(returnStdout: true, script: 'aws sts get-caller-identity --query Account --output text').trim() + '.dkr.ecr.' + env.AWS_REGION + '.amazonaws.com'}"
+        REPO_NAME = "magento"
+        IMAGE_NAME = "${ECR_REGISTRY}/${REPO_NAME}"
+        GIT_REPO = "${GIT_REPO ?: 'https://github.com/yourusername/magento-deployment.git'}"
+        ARGOCD_SERVER = "http://ad434cd11f2ea46a1951f428cdd61c69-1036000244.us-east-1.elb.amazonaws.com:8080"
         K8S_NAMESPACE = "default"
+        AWS_CREDENTIALS = credentials('aws-credentials-id')
     }
     stages {
         stage('Prepare') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials-id']]) {
-                    script {
-                        def accountId = sh(returnStdout: true, script: "aws sts get-caller-identity --query Account --output text").trim()
-                        env.ECR_REGISTRY = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
-                        env.IMAGE_NAME = "${env.ECR_REGISTRY}/${env.REPO_NAME}"
-                    }
-                    sh 'echo "Using AWS Region: ${AWS_REGION}"'
-                    sh 'echo "ECR Registry: ${ECR_REGISTRY}"'
-                    sh 'aws configure set region ${AWS_REGION}'
-                    sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
-                }
+                sh 'echo "Using AWS Region: ${AWS_REGION}"'
+                sh 'echo "ECR Registry: ${ECR_REGISTRY}"'
+                sh 'aws configure set region ${AWS_REGION}'
+                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
             }
         }
         stage('Build') {
@@ -31,10 +27,15 @@ pipeline {
                 sh 'docker push ${IMAGE_NAME}:${BUILD_NUMBER}'
             }
         }
-        stage('Deploy') {
+        stage('Deploy with ArgoCD') {
             steps {
+                // Apply your Kubernetes manifests first
                 sh 'kubectl apply -f k8s/'
-                sh 'argocd app sync magento-app --server ${ARGOCD_SERVER} --namespace ${K8S_NAMESPACE} --grpc-web'
+
+                // Trigger ArgoCD app sync
+                sh """
+                argocd app sync magento-app --server ${ARGOCD_SERVER} --namespace ${K8S_NAMESPACE} --grpc-web
+                """
             }
         }
     }

@@ -29,24 +29,6 @@ pipeline {
             }
         }
 
-        stage('Install AWS CLI') {
-            steps {
-                echo "🔧 Installing AWS CLI..."
-                sh '''
-                if ! command -v aws &> /dev/null
-                then
-                    echo "AWS CLI not found. Installing..."
-                    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                    unzip -o awscliv2.zip
-                    ./aws/install --install-dir $HOME/aws-cli --bin-dir $HOME/bin
-                    echo "AWS CLI installed successfully."
-                else
-                    echo "AWS CLI is already installed."
-                fi
-                '''
-            }
-        }
-
         stage('Trigger AWS CodeBuild') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-jenkins-credentials']]) {
@@ -55,15 +37,20 @@ pipeline {
                         echo "   REPO_URL: $GITHUB_REPO_URL"
                         echo "   IMAGE_TAG: $IMAGE_TAG"
                         echo "   ECR_REPO: $ECR_REPO"
-                        sh """
-                        aws codebuild start-build \
-                          --region $AWS_REGION \
-                          --project-name $CODEBUILD_PROJ \
-                          --environment-variables-override \
-                              name=REPO_URL,value=$GITHUB_REPO_URL,type=PLAINTEXT \
-                              name=IMAGE_TAG,value=$IMAGE_TAG,type=PLAINTEXT \
-                              name=ECR_REPO,value=$ECR_REPO,type=PLAINTEXT
-                        """
+
+                        def build = codeBuild(
+                            projectName: "${CODEBUILD_PROJ}",
+                            credentialsType: 'keys',
+                            accessKey: "${AWS_ACCESS_KEY_ID}",
+                            secretKey: "${AWS_SECRET_ACCESS_KEY}",
+                            region: "${AWS_REGION}",
+                            environmentVariables: [
+                                [name: 'REPO_URL', value: "${GITHUB_REPO_URL}"],
+                                [name: 'IMAGE_TAG', value: "${IMAGE_TAG}"],
+                                [name: 'ECR_REPO', value: "${ECR_REPO}"]
+                            ]
+                        )
+                        echo "✅ CodeBuild started: ${build.buildId}"
                     }
                 }
             }
@@ -75,9 +62,11 @@ pipeline {
                     script {
                         echo "🔄 Triggering ArgoCD sync for the app: $ARGOCD_APP"
                         sh """
-                        argocd login $ARGOCD_HOST --username admin --password $ARGOCD_AUTH_TOKEN --insecure
-                        argocd app sync $ARGOCD_APP
+                        curl -k -X POST https://${ARGOCD_HOST}/api/v1/applications/${ARGOCD_APP}/sync \
+                          -H "Authorization: Bearer $ARGOCD_AUTH_TOKEN" \
+                          -H "Content-Type: application/json"
                         """
+                        echo "✅ ArgoCD sync requested for $ARGOCD_APP"
                     }
                 }
             }

@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = 'us-east-1'                     // Change as needed
-        ECR_REPO = '767397973879.dkr.ecr.us-east-1.amazonaws.com/magento-repo'  // Your ECR repo
+        ECR_REPO = '975050208254.dkr.ecr.us-east-1.amazonaws.com/magento-repo'  // Your ECR repo
         IMAGE_TAG = ''                              // Will be dynamically set
     }
 

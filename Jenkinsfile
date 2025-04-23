@@ -38,7 +38,7 @@ pipeline {
                     echo "AWS CLI not found. Installing..."
                     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                     unzip -o awscliv2.zip
-                    ./aws/install
+                    ./aws/install --install-dir $HOME/aws-cli --bin-dir $HOME/bin
                     echo "AWS CLI installed successfully."
                 else
                     echo "AWS CLI is already installed."

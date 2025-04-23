@@ -5,7 +5,7 @@ pipeline {
         AWS_REGION       = 'us-east-1'
         GITHUB_REPO_URL  = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
         ECR_REPO         = '975050208254.dkr.ecr.us-east-1.amazonaws.com/magento-repo'
-        CODEBUILD_PROJ   = 'magento-codebuild'
+        CODEBUILD_PROJ   = 'magento_codebuild'
         ARGOCD_APP       = 'my-app'
         ARGOCD_HOST      = 'argocd.yourdomain.com'
     }

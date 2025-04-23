@@ -1,16 +1,22 @@
 pipeline {
     agent any
 
+    // 🔧 GLOBAL CONFIGURABLE VARIABLES
     environment {
-        AWS_REGION = 'us-east-1'                     // Change as needed
-        ECR_REPO = '975050208254.dkr.ecr.us-east-1.amazonaws.com/magento-repo'  // Your ECR repo
-        IMAGE_TAG = ''                              // Will be dynamically set
+        AWS_REGION       = 'us-east-1'                                           // AWS region
+        GITHUB_REPO_URL  = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'  // GitHub repo URL
+        ECR_REPO         = '975050208254.dkr.ecr.us-east-1.amazonaws.com/magento-repo'  // ECR repo URI (can be dynamic from TF)
+        CODEBUILD_PROJ   = 'magento-codebuild'                                   // CodeBuild project name
+        ARGOCD_APP       = 'my-app'                                              // ArgoCD app name
+        ARGOCD_HOST      = 'argocd.yourdomain.com'                               // ArgoCD URL
+        IMAGE_TAG        = ''                                                    // Will be dynamically set based on Git commit
     }
 
     stages {
 
         stage('Checkout') {
             steps {
+                echo "🔄 Checking out Git repository: $GITHUB_REPO_URL"
                 checkout scm
             }
         }
@@ -18,39 +24,33 @@ pipeline {
         stage('Set Image Tag') {
             steps {
                 script {
-                    // Use short git commit hash as image tag
+                    // Use the Git commit hash as the image tag
                     IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    echo "✅ Set IMAGE_TAG to $IMAGE_TAG"
                 }
             }
         }
 
-        stage('Docker Build') {
+        stage('Trigger AWS CodeBuild') {
             steps {
-                script {
-                    docker.build("${ECR_REPO}:${IMAGE_TAG}")
-                }
-            }
-        }
-
-        stage('Login to AWS ECR') {
-            steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                  credentialsId: 'aws-jenkins-credentials']]) {  // Your Jenkins credential ID
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-jenkins-credentials']]) {
                     script {
-                        sh '''
-                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-                        '''
+                        echo "🚀 Triggering AWS CodeBuild with the following parameters:"
+                        echo "   REPO_URL: $GITHUB_REPO_URL"
+                        echo "   IMAGE_TAG: $IMAGE_TAG"
+                        echo "   ECR_REPO: $ECR_REPO"
+                        
+                        // Trigger AWS CodeBuild and pass the necessary environment variables
+                        sh """
+                        aws codebuild start-build \
+                          --region $AWS_REGION \
+                          --project-name $CODEBUILD_PROJ \
+                          --environment-variables-override \
+                              name=REPO_URL,value=$GITHUB_REPO_URL,type=PLAINTEXT \
+                              name=IMAGE_TAG,value=$IMAGE_TAG,type=PLAINTEXT \
+                              name=ECR_REPO,value=$ECR_REPO,type=PLAINTEXT
+                        """
                     }
-                }
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                script {
-                    sh """
-                        docker push ${ECR_REPO}:${IMAGE_TAG}
-                    """
                 }
             }
         }
@@ -59,13 +59,13 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'argocd-auth-token', variable: 'ARGOCD_AUTH_TOKEN')]) {
                     script {
-                        sh '''
-                            # Login to ArgoCD CLI
-                            argocd login argocd.yourdomain.com --username admin --password $ARGOCD_AUTH_TOKEN --insecure
-
-                            # Sync your application (replace 'my-app' with your actual ArgoCD app name)
-                            argocd app sync my-app
-                        '''
+                        echo "🔄 Triggering ArgoCD sync for the app: $ARGOCD_APP"
+                        
+                        // Log in to ArgoCD and trigger the sync
+                        sh """
+                        argocd login $ARGOCD_HOST --username admin --password $ARGOCD_AUTH_TOKEN --insecure
+                        argocd app sync $ARGOCD_APP
+                        """
                     }
                 }
             }
@@ -74,7 +74,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deployment Pipeline finished successfully! Image ${ECR_REPO}:${IMAGE_TAG} pushed and ArgoCD sync triggered."
+            echo "✅ CodeBuild started for IMAGE_TAG $IMAGE_TAG and ArgoCD sync triggered successfully for $ARGOCD_APP."
         }
         failure {
             echo "❌ Pipeline failed. Check logs for details."

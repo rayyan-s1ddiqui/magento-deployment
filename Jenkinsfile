@@ -2,67 +2,55 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION       = 'us-east-1'
-        GITHUB_REPO_URL  = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
-        ECR_REPO         = '975050208254.dkr.ecr.us-east-1.amazonaws.com/magento-repo'
-        CODEBUILD_PROJ   = 'magento_codebuild'
-        ARGOCD_APP       = 'my-app'
-        ARGOCD_HOST      = 'argocd.yourdomain.com'
+        // 🌍 -------- Global Config --------
+        GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployement.git'
+        DOCKER_IMAGE_NAME = 'vnvsa/magento'
+        AWS_REGION        = 'us-east-1'
+        ECR_REPO_NAME     = 'magento_repo'
+        IMAGE_TAG         = 'latest'
+        AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
     }
 
     stages {
-
-        stage('Checkout') {
+        stage('📥 Clone Repository') {
             steps {
-                echo "🔄 Checking out Git repository: ${GITHUB_REPO_URL}"
-                checkout scm
+                git "${GIT_REPO_URL}"
             }
         }
 
-        stage('Set Image Tag') {
+        stage('🐳 Build Docker Image') {
             steps {
                 script {
-                    env.IMAGE_TAG = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    echo "✅ Set IMAGE_TAG to ${env.IMAGE_TAG}"
+                    sh "docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ."
                 }
             }
         }
 
-        stage('Trigger AWS CodeBuild') {
+        stage('🔐 Login to ECR and Get Registry URI') {
             steps {
-                withAWS(credentials: 'aws-jenkins-credentials', region: "${AWS_REGION}") {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "${AWS_CREDENTIALS_ID}"]]) {
                     script {
-                        echo "🚀 Triggering AWS CodeBuild with:"
-                        echo "   REPO_URL: ${GITHUB_REPO_URL}"
-                        echo "   IMAGE_TAG: ${env.IMAGE_TAG}"
-                        echo "   ECR_REPO: ${ECR_REPO}"
+                        env.ECR_URL = sh(
+                            script: "aws ecr describe-repositories --repository-names ${ECR_REPO_NAME} --region ${AWS_REGION} --query 'repositories[0].repositoryUri' --output text",
+                            returnStdout: true
+                        ).trim()
 
-                        def build = awsCodeBuild(
-                            projectName: "${CODEBUILD_PROJ}",
-                            environmentVariablesOverride: [
-                                [name: 'REPO_URL', value: "${GITHUB_REPO_URL}", type: 'PLAINTEXT'],
-                                [name: 'IMAGE_TAG', value: "${env.IMAGE_TAG}", type: 'PLAINTEXT'],
-                                [name: 'ECR_REPO', value: "${ECR_REPO}", type: 'PLAINTEXT']
-                            ]
-                        )
-                        echo "✅ CodeBuild started with status: ${build.buildStatus}"
-                    }
-                }
-            }
-        }
-
-        stage('Trigger ArgoCD Sync') {
-            steps {
-                withCredentials([string(credentialsId: 'argocd-auth-token', variable: 'ARGOCD_AUTH_TOKEN')]) {
-                    script {
-                        echo "🔄 Triggering ArgoCD sync for the app: ${ARGOCD_APP}"
                         sh """
-                        curl -k -X POST https://${ARGOCD_HOST}/api/v1/applications/${ARGOCD_APP}/sync \
-                          -H "Authorization: Bearer ${ARGOCD_AUTH_TOKEN}" \
-                          -H "Content-Type: application/json"
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${env.ECR_URL}
                         """
-                        echo "✅ ArgoCD sync requested for ${ARGOCD_APP}"
                     }
+                }
+            }
+        }
+
+        stage('📤 Tag and Push Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${env.ECR_URL}:${IMAGE_TAG}
+                    docker push ${env.ECR_URL}:${IMAGE_TAG}
+                    """
                 }
             }
         }
@@ -70,10 +58,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline completed successfully for IMAGE_TAG ${env.IMAGE_TAG}. ArgoCD sync triggered for ${ARGOCD_APP}."
+            echo "✅ Image successfully pushed to ${env.ECR_URL}:${IMAGE_TAG}"
         }
         failure {
-            echo "❌ Pipeline failed. Check logs for more info."
+            echo '❌ Build failed. Check logs for details.'
         }
     }
 }

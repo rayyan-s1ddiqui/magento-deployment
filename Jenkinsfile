@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // 🌍 -------- Global Config --------
-        GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployement.git'
+        GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
         DOCKER_IMAGE_NAME = 'vnvsa/magento'
         AWS_REGION        = 'us-east-1'
         ECR_REPO_NAME     = 'magento_repo'

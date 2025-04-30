@@ -6,7 +6,7 @@ pipeline {
         GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
         DOCKER_IMAGE_NAME = 'vnvsa/magento'
         AWS_REGION        = 'us-east-1'
-        ECR_REPO_NAME     = 'magento_repo'
+        ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
     }

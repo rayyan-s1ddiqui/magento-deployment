@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: magento
+  namespace: magento
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: magento
+  template:
+    metadata:
+      labels:
+        app: magento
+    spec:
+      containers:
+        - name: magento
+          image: <ECR_IMAGE_URI>:latest  # <-- Jenkins will update this
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MAGENTO_MODE
+              value: developer
+          volumeMounts:
+            - name: magento-storage
+              mountPath: /bitnami/magento
+      volumes:
+        - name: magento-storage
+          emptyDir: {}  # Replace with a PVC if needed

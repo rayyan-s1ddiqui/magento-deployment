@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         // 🌍 -------- Global Config --------
-        GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
-        DOCKER_IMAGE_NAME = 'vnvsa/magento'
+        GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployement.git'
+        DOCKER_IMAGE_NAME = 'bitnami/magento'
         AWS_REGION        = 'us-east-1'
         ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'
@@ -14,7 +14,7 @@ pipeline {
     stages {
         stage('📥 Clone Repository') {
             steps {
-                git branch: 'main', url: "${GIT_REPO_URL}"
+                git "${GIT_REPO_URL}"
             }
         }
 
@@ -54,6 +54,23 @@ pipeline {
                 }
             }
         }
+
+        stage('✏️ Update Deployment Manifest with Image URI') {
+            steps {
+                script {
+                     def manifestPath = 'k8s/deployment.yaml'  // adjust this path to your actual manifest location
+                     sh """
+                     sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
+                     git config --global user.email "jenkins@local"
+                     git config --global user.name "jenkins"
+                     git add ${manifestPath}
+                     git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
+                     git push origin HEAD:main  // or your branch
+                     """
+                }
+            }  
+        }
+
     }
 
     post {

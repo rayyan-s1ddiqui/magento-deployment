@@ -7,6 +7,6 @@ spec:
   selector:
     app: magento
   ports:
-    - port: 8070
+    - port: 80
       targetPort: 8080
   type: LoadBalancer

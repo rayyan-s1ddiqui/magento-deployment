@@ -67,7 +67,7 @@ pipeline {
                      git config --global user.name "jenkins"
                      git add ${manifestPath}
                      git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
-                     git push origin HEAD:main  // or your branch
+                     git push origin HEAD:main 
                      """
                 }
             }  

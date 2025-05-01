@@ -9,14 +9,15 @@ pipeline {
         ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
+        GIT_CRED_ID       = '62f6c14d-4737-4cb0-8218-78e5270d29e2'
     }
 
     stages {
         stage('📥 Clone Repository') {
             steps {
-                git credentialsId: '62f6c14d-4737-4cb0-8218-78e5270d29e2',
-                url: "${GIT_REPO_URL}",
-                branch: 'main'
+                git credentialsId: "${GIT_CRED_ID}",
+                    url: "${GIT_REPO_URL}",
+                    branch: 'main'
             }
         }
 
@@ -59,18 +60,23 @@ pipeline {
 
         stage('✏️ Update Deployment Manifest with Image URI') {
             steps {
-                script {
-                     def manifestPath = 'k8s/deployment.yaml'  // adjust this path to your actual manifest location
-                     sh """
-                     sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
-                     git config --global user.email "jenkins@local"
-                     git config --global user.name "jenkins"
-                     git add ${manifestPath}
-                     git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
-                     git push origin HEAD:main 
-                     """
+                withCredentials([usernamePassword(credentialsId: "${GIT_CRED_ID}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    script {
+                        def manifestPath = 'k8s/deployment.yaml'
+                        def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
+
+                        sh """
+                        sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
+                        git config --global user.email "jenkins@local"
+                        git config --global user.name "jenkins"
+                        git remote set-url origin ${repoWithCreds}
+                        git add ${manifestPath}
+                        git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
+                        git push origin HEAD:main
+                        """
+                    }
                 }
-            }  
+            }
         }
     }
 

@@ -11,13 +11,14 @@ pipeline {
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
     }
 
-      stage('📥 Clone Repository') {
-          steps {
-              git credentialsId: '62f6c14d-4737-4cb0-8218-78e5270d29e2',
-              url: "${GIT_REPO_URL}",
-              branch: 'main'
-          }
-      }
+    stages {
+        stage('📥 Clone Repository') {
+            steps {
+                git credentialsId: '62f6c14d-4737-4cb0-8218-78e5270d29e2',
+                url: "${GIT_REPO_URL}",
+                branch: 'main'
+            }
+        }
 
         stage('🐳 Build Docker Image') {
             steps {
@@ -71,7 +72,6 @@ pipeline {
                 }
             }  
         }
-
     }
 
     post {

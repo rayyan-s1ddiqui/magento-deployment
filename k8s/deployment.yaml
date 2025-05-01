@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: magento
-          image: <ECR_IMAGE_URI>:latest  # <-- Jenkins will update this
+          image: <ECR_URI>:latest  # <-- Jenkins will update this
           ports:
             - containerPort: 8080
           env:

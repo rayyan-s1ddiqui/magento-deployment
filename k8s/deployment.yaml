@@ -9,6 +9,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
+  storageClassName: standard  # Added storageClassName for dynamic provisioning
 ---
 apiVersion: v1
 kind: Service
@@ -37,7 +38,7 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
+          image: mysql:5.7
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: rootpass
@@ -68,6 +69,7 @@ spec:
   resources:
     requests:
       storage: 2Gi
+  storageClassName: standard  # Added storageClassName for dynamic provisioning
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,7 +88,7 @@ spec:
     spec:
       containers:
         - name: magento
-          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
+          image: <ECR_URI>:latest
           ports:
             - containerPort: 80
           env:

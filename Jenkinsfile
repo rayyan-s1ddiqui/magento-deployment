@@ -59,36 +59,46 @@ pipeline {
         }
 
         stage('✏️ Update Deployment Manifest with Image URI') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${GIT_CRED_ID}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                    script {
-                        def manifestPath = 'k8s/deployment.yaml'
-                        def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
+    steps {
+        withCredentials([usernamePassword(credentialsId: "${GIT_CRED_ID}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+            script {
+                def manifestPath = 'k8s/deployment.yaml'
+                def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
 
-                        sh """
-                        sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
-                        git config --global user.email "jenkins@local"
-                        git config --global user.name "jenkins"
-                        git remote set-url origin ${repoWithCreds}
-                        git add ${manifestPath}
-                        
-                        // Check if there are changes to commit
-                        def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+                // Use sed for Unix-based systems and handle macOS sed differences
+                def sedCommand = "sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
+                if (isUnix() && !isMac()) {  // For Unix/Linux systems
+                    sedCommand = "sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
+                } else if (isMac()) {  // For macOS
+                    sedCommand = "sed -i '' 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
+                }
 
-                        if (changes) {
-                           sh """
-                           git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
-                           git push origin HEAD:main
-                           """
-                       } else {
-                           echo "No changes to commit."
-                       }
-                        """
-                    }
+                // Run the commands to update the manifest
+                sh """
+                ${sedCommand}
+                git config --global user.email "jenkins@local"
+                git config --global user.name "jenkins"
+                git remote set-url origin ${repoWithCreds}
+                git add ${manifestPath}
+                """
+
+                // Check if there are changes to commit
+                def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+
+                // Only commit and push if there are changes
+                if (changes) {
+                    echo "Changes detected, committing and pushing..."
+                    sh """
+                    git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
+                    git push origin HEAD:main
+                    """
+                } else {
+                    echo "No changes to commit."
                 }
             }
         }
     }
+}
 
     post {
         success {

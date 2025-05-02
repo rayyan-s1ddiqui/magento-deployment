@@ -37,7 +37,7 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:5.7
+          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: rootpass
@@ -86,7 +86,7 @@ spec:
     spec:
       containers:
         - name: magento
-          image: <ECR_URI>:latest
+          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
           ports:
             - containerPort: 80
           env:

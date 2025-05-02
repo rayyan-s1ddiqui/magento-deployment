@@ -71,8 +71,18 @@ pipeline {
                         git config --global user.name "jenkins"
                         git remote set-url origin ${repoWithCreds}
                         git add ${manifestPath}
-                        git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
-                        git push origin HEAD:main
+                        
+                        // Check if there are changes to commit
+                        def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+
+                        if (changes) {
+                           sh """
+                           git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
+                           git push origin HEAD:main
+                           """
+                       } else {
+                           echo "No changes to commit."
+                       }
                         """
                     }
                 }

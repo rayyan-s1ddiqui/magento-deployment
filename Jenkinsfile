@@ -9,7 +9,7 @@ pipeline {
         ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
-        GIT_CRED_ID       = '4906df33-3a14-4a82-a76c-37dd2033decf'
+        GIT_CRED_ID       = 'github-creds'
     }
 
     stages {

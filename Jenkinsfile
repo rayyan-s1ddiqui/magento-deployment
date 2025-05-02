@@ -65,27 +65,17 @@ pipeline {
                 def manifestPath = 'k8s/deployment.yaml'
                 def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
 
-                // Use sed for Unix-based systems and handle macOS sed differences
-                def sedCommand = "sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
-                if (isUnix() && !isMac()) {  // For Unix/Linux systems
-                    sedCommand = "sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
-                } else if (isMac()) {  // For macOS
-                    sedCommand = "sed -i '' 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}"
-                }
-
-                // Run the commands to update the manifest
+                // Update image in deployment.yaml
                 sh """
-                ${sedCommand}
+                sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
                 git config --global user.email "jenkins@local"
                 git config --global user.name "jenkins"
                 git remote set-url origin ${repoWithCreds}
                 git add ${manifestPath}
                 """
 
-                // Check if there are changes to commit
+                // Check for changes before committing
                 def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
-
-                // Only commit and push if there are changes
                 if (changes) {
                     echo "Changes detected, committing and pushing..."
                     sh """

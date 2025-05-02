@@ -59,36 +59,37 @@ pipeline {
         }
 
         stage('✏️ Update Deployment Manifest with Image URI') {
-    steps {
-        withCredentials([usernamePassword(credentialsId: "${GIT_CRED_ID}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-            script {
-                def manifestPath = 'k8s/deployment.yaml'
-                def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${GIT_CRED_ID}", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                    script {
+                        def manifestPath = 'k8s/deployment.yaml'
+                        def repoWithCreds = "https://${GIT_USER}:${GIT_TOKEN}@github.com/rayyan-s1ddiqui/magento-deployment.git"
 
-                // Update image in deployment.yaml
-                sh """
-                sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
-                git config --global user.email "jenkins@local"
-                git config --global user.name "jenkins"
-                git remote set-url origin ${repoWithCreds}
-                git add ${manifestPath}
-                """
+                        // Update image in deployment.yaml
+                        sh """
+                        sed -i 's|image:.*|image: ${env.ECR_URL}:${IMAGE_TAG}|' ${manifestPath}
+                        git config --global user.email "jenkins@local"
+                        git config --global user.name "jenkins"
+                        git remote set-url origin ${repoWithCreds}
+                        git add ${manifestPath}
+                        """
 
-                // Check for changes before committing
-                def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
-                if (changes) {
-                    echo "Changes detected, committing and pushing..."
-                    sh """
-                    git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
-                    git push origin HEAD:main
-                    """
-                } else {
-                    echo "No changes to commit."
+                        // Check for changes before committing
+                        def changes = sh(script: "git status --porcelain", returnStdout: true).trim()
+                        if (changes) {
+                            echo "Changes detected, committing and pushing..."
+                            sh """
+                            git commit -m "🔄 Auto-update image to ${env.ECR_URL}:${IMAGE_TAG}"
+                            git push origin HEAD:main
+                            """
+                        } else {
+                            echo "No changes to commit."
+                        }
+                    }
                 }
             }
         }
-    }
-}
+    } // <-- CLOSE stages
 
     post {
         success {
@@ -98,5 +99,4 @@ pipeline {
             echo '❌ Build failed. Check logs for details.'
         }
     }
-}
-}   
+} // <-- CLOSE pipeline

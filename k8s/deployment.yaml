@@ -36,6 +36,13 @@ spec:
       labels:
         app: mysql
     spec:
+      initContainers:
+        - name: cleanup-mysql-dir
+          image: busybox
+          command: ["sh", "-c", "rm -rf /var/lib/mysql/*"]
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
       containers:
         - name: mysql
           image: mysql:5.7
@@ -88,7 +95,7 @@ spec:
     spec:
       containers:
         - name: magento
-          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
+          image: <ECR_URI>:latest
           ports:
             - containerPort: 80
           env:

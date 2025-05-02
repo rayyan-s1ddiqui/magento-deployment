@@ -4,12 +4,12 @@ pipeline {
     environment {
         // 🌍 -------- Global Config --------
         GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
-        DOCKER_IMAGE_NAME = 'bitnami/magento'
+        DOCKER_IMAGE_NAME = 'phoenixmedia/magento'
         AWS_REGION        = 'us-east-1'
         ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
-        GIT_CRED_ID       = '62f6c14d-4737-4cb0-8218-78e5270d29e2'
+        GIT_CRED_ID       = '4906df33-3a14-4a82-a76c-37dd2033decf'
     }
 
     stages {

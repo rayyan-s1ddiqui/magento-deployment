@@ -38,7 +38,7 @@ spec:
     spec:
       initContainers:
         - name: cleanup-mysql-dir
-          image: busybox:1.36
+          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
           command: ["sh", "-c", "rm -rf /var/lib/mysql/*"]
           volumeMounts:
             - name: mysql-data

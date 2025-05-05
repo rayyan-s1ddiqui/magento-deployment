@@ -4,7 +4,7 @@ pipeline {
     environment {
         // 🌍 -------- Global Config --------
         GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
-        DOCKER_IMAGE_NAME = 'phoenixmedia/magento'
+        DOCKER_IMAGE_NAME = 'rayyans1ddiqui/magento'
         AWS_REGION        = 'us-east-1'
         ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = 'latest'

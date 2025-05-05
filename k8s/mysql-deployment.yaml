@@ -48,7 +48,7 @@ spec:
               mountPath: /var/lib/mysql
       containers:
         - name: mysql
-          image: 533267151748.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
+          image: 471112659821.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: rootpass

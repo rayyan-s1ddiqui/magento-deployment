@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: magento
-          image: 471112659821.dkr.ecr.us-east-1.amazonaws.com/magento-repo:latest
+          image: 471112659821.dkr.ecr.us-east-1.amazonaws.com/magento-repo:2.4.7-apache
           ports:
             - containerPort: 80
           env:

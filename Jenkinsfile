@@ -4,9 +4,9 @@ pipeline {
     environment {
         // 🌍 -------- Global Config --------
         GIT_REPO_URL     = 'https://github.com/rayyan-s1ddiqui/magento-deployment.git'
-        DOCKER_IMAGE_NAME = 'rayyans1ddiqui/magento-apache'
+        DOCKER_IMAGE_NAME = 'onestic/magento'
         AWS_REGION        = 'us-east-1'
-        ECR_REPO_NAME     = 'onestic/magento'
+        ECR_REPO_NAME     = 'magento-repo'
         IMAGE_TAG         = '2.4.6-fpm-dev'
         AWS_CREDENTIALS_ID = 'aws-creds'  // <-- ID from Jenkins Credentials Manager
         GIT_CRED_ID       = 'github-creds'
